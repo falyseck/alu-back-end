@@ -1,27 +1,47 @@
-#!/usr/bin/python3
-""" Library to gather data from an API """
-
 import requests
 import sys
 
-""" Function to gather data from an API """
+def get_employee_todo_progress(employee_id):
+    # API endpoints (replace with actual URLs if necessary)
+    user_url = f'https://jsonplaceholder.typicode.com/users/{employee_id}'
+    todos_url = f'https://jsonplaceholder.typicode.com/todos?userId={employee_id}'
 
-if __name__ == "__main__":
-    employee_id = sys.argv[1]
-    url = "https://jsonplaceholder.typicode.com/users/{}".format(employee_id)
+    try:
+        # Fetch employee data
+        user_response = requests.get(user_url)
+        user_response.raise_for_status()  # Raise exception for bad status codes
+        user_data = user_response.json()
 
-    todo = "https://jsonplaceholder.typicode.com/todos?userId={}"
-    todo = todo.format(employee_id)
+        # Fetch todos data
+        todos_response = requests.get(todos_url)
+        todos_response.raise_for_status()
+        todos_data = todos_response.json()
 
-    user_info = requests.request("GET", url).json()
-    todo_info = requests.request("GET", todo).json()
+        # Extract employee name
+        employee_name = user_data.get('name')
 
-    employee_name = user_info.get("name")
-    total_tasks = list(filter(lambda x: (x["completed"] is True), todo_info))
-    task_com = len(total_tasks)
-    total_task_done = len(todo_info)
+        # Filter and count tasks
+        total_tasks = len(todos_data)
+        completed_tasks = [task for task in todos_data if task.get('completed')]
 
-    print("Employee {} is done with tasks({}/{}):".format(employee_name,
-          task_com, total_task_done))
+        # Display the first line of progress
+        print(f"Employee {employee_name} is done with tasks({len(completed_tasks)}/{total_tasks}):")
 
-    [print("\t {}".format(task.get("title"))) for task in total_tasks]
+        # Display completed task titles
+        for task in completed_tasks:
+            print(f"\t {task.get('title')}")
+
+    except requests.RequestException as e:
+        print(f"Error fetching data: {e}")
+    except ValueError:
+        print("Invalid employee ID or error processing response.")
+
+if __name__ == '__main__':
+    if len(sys.argv) != 2:
+        print("Usage: python3 script.py <employee_id>")
+    else:
+        try:
+            employee_id = int(sys.argv[1])
+            get_employee_todo_progress(employee_id)
+        except ValueError:
+            print("Please provide a valid integer as employee ID.")
