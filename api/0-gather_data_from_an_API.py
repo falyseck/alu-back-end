@@ -1,27 +1,34 @@
 #!/usr/bin/python3
-"""
-Using a REST API, and a given emp_ID, return info about their TODO list.
-"""
+"""Script to use a REST API for a given employee ID, returns
+information about his/her TODO list progress"""
 import requests
 import sys
 
 
 if __name__ == "__main__":
-    """ main section """
-    BASE_URL = 'https://jsonplaceholder.typicode.com'
-    employee = requests.get(
-        BASE_URL + f'/users/{sys.argv[1]}/').json()
-    EMPLOYEE_NAME = employee.get("name")
-    employee_todos = requests.get(
-        BASE_URL + f'/users/{sys.argv[1]}/todos').json()
-    serialized_todos = {}
+    if len(sys.argv) != 2:
+        print(f"UsageError: python3 {__file__} employee_id(int)")
+        sys.exit(1)
 
-    for todo in employee_todos:
-        serialized_todos.update({todo.get("title"): todo.get("completed")})
+    API_URL = "https://jsonplaceholder.typicode.com"
+    EMPLOYEE_ID = sys.argv[1]
 
-    COMPLETED_LEN = len([k for k, v in serialized_todos.items() if v is True])
-    print("Employee {} is done with tasks({}/{}):".format(
-        EMPLOYEE_NAME, COMPLETED_LEN, len(serialized_todos)))
-    for key, val in serialized_todos.items():
-        if val is True:
-            print("\t {}".format(key))
+    response = requests.get(
+        f"{API_URL}/users/{EMPLOYEE_ID}/todos",
+        params={"_expand": "user"}
+    )
+    data = response.json()
+
+    if not len(data):
+        print("RequestError:", 404)
+        sys.exit(1)
+
+    employee_name = data[0]["user"]["name"]
+    total_tasks = len(data)
+    done_tasks = [task for task in data if task["completed"]]
+    total_done_tasks = len(done_tasks)
+
+    print(f"Employee {employee_name} is done with tasks"
+          f"({total_done_tasks}/{total_tasks}):")
+    for task in done_tasks:
+        print(f"\t {task['title']}")
